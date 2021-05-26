@@ -13,8 +13,12 @@ app.use(express.json());
 // ------------------------------------------------------------------
 // Database
 
-const db = monk(process.env.MONGO_URI || 'localhost/chatroom');
+const db = monk('localhost/chatroom');
 const chatlog = db.get('chatlog');
+
+db.then(() => {
+  console.log('Connected to database');
+});
 
 // ------------------------------------------------------------------
 // Schema
@@ -29,10 +33,11 @@ const schema = joi.object({
 // Routes
 
 // READ ALL
-app.get('/', async (req, res, next) => {
+app.get('/', (req, res, next) => {
   try {
-    const log = chatlog.find();
-    res.json(log);
+    chatlog.find().then((log) => {
+      res.json(log);
+    });
   } catch (error) {
     next(error);
   }
@@ -40,29 +45,54 @@ app.get('/', async (req, res, next) => {
 
 // READ ONE
 app.get('/:id', (req, res, next) => {
-  res.json({
-    message: 'HELLO READ ONE',
-  });
+  try {
+    const { id } = req.params;
+    chatlog
+      .findOne({
+        _id: id,
+      })
+      .then((item) => {
+        res.json(item);
+      });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // CREATE ONE
 
-app.post('/', async (req, res, next) => {
+app.post('/', (req, res, next) => {
   try {
-    const value = await schema.validate(req.body);
-    const inserted = await chatlog.insert(value);
-    res.json(inserted);
+    const value = schema.validate(req.body);
+    chatlog.insert(value).then(() => {
+      res.json(value);
+    });
   } catch (error) {
-    next(error);
+    next();
   }
 });
 
 // UPDATE ONE
 
 app.put('/:id', (req, res, next) => {
-  res.json({
-    message: 'HELLO UPDATE ONE',
-  });
+  try {
+    const { id } = req.params;
+    const value = schema.validate(req.body);
+    chatlog
+      .findOne({
+        _id: id,
+      })
+      .then((item) => {
+        chatlog.update(
+          {
+            _id: id,
+          },
+          value
+        );
+      });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // DELETE ONE
