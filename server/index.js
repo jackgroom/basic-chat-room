@@ -1,23 +1,41 @@
 const express = require('express');
 const cors = require('cors');
 const monk = require('monk');
+const joi = require('@hapi/joi');
 const rateLimit = require('express-rate-limit');
+
+require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// const db = monk(process.env.MONGO_URI || 'localhost/chatroom');
-// const chatlog = db.get('chatlog');
+// ------------------------------------------------------------------
+// Database
+
+const db = monk(process.env.MONGO_URI || 'localhost/chatroom');
+const chatlog = db.get('chatlog');
 
 // ------------------------------------------------------------------
-// ROUTES
+// Schema
+
+const schema = joi.object({
+  username: joi.string().trim().required(),
+  message: joi.string().trim().required(),
+  created: joi.string().trim().required(),
+});
+
+// ------------------------------------------------------------------
+// Routes
 
 // READ ALL
-app.get('/', (req, res, next) => {
-  res.json({
-    message: 'HELLO READ ALL',
-  });
+app.get('/', async (req, res, next) => {
+  try {
+    const log = chatlog.find();
+    res.json(log);
+  } catch (error) {
+    next(error);
+  }
 });
 
 // READ ONE
@@ -29,10 +47,14 @@ app.get('/:id', (req, res, next) => {
 
 // CREATE ONE
 
-app.post('/', (req, res, next) => {
-  res.json({
-    message: 'HELLO CREATE ONE',
-  });
+app.post('/', async (req, res, next) => {
+  try {
+    const value = await schema.validate(req.body);
+    const inserted = await chatlog.insert(value);
+    res.json(inserted);
+  } catch (error) {
+    next(error);
+  }
 });
 
 // UPDATE ONE
@@ -52,7 +74,7 @@ app.delete('/:id', (req, res, next) => {
 });
 
 // ------------------------------------------------------------------
-// LISTEN
+// Listen
 
 app.listen(5000, () => {
   console.log('Listening on port http://localhost:5000');
