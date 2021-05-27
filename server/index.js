@@ -68,7 +68,7 @@ app.post('/', (req, res, next) => {
       res.json(value);
     });
   } catch (error) {
-    next();
+    next(error);
   }
 });
 
@@ -89,6 +89,9 @@ app.put('/:id', (req, res, next) => {
           },
           value
         );
+      })
+      .catch(() => {
+        next('fuck off');
       });
   } catch (error) {
     next(error);
@@ -100,6 +103,17 @@ app.put('/:id', (req, res, next) => {
 app.delete('/:id', (req, res, next) => {
   res.json({
     message: 'HELLO DELETE ONE',
+  });
+});
+
+// ------------------------------------------------------------------
+// Error handler
+
+app.use((error, req, res, next) => {
+  res.status(error.status ? error.status : 500);
+  res.json({
+    message: error.message,
+    stack: process.env.NODE_ENV === 'production' ? '🥞' : error.stack,
   });
 });
 
